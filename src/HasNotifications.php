@@ -26,10 +26,23 @@ trait HasNotifications
      */
     public function notifications()
     {
+        /**
+         * The related column ID
+         */
         $column = config('mobileNotification.relation.column', 'user_id');
         $deletedNotifications = $this->deletedNotifications()->pluck('notification_id')->toArray();
 
+        /**
+         * OS Header Can Be Android / IOS or Empty for General
+         */
+        $os_header = request()->header('OS-Header');
+        $os = isset($os_header) && in_array(strtolower(trim($os_header)), ['ios', 'android'])
+                ? strtolower(trim($os_header)) : 'general' ;
+
         return $this->hasMany(Notifications::mobileNotification(), $column)
+            ->OrWhere(function ($query) use ($column, $os){
+                $query->where($column, null)->where('topic', $os);
+            })
             ->whereNotIn('id', $deletedNotifications)
             ->orderBy('created_at', 'desc');
     }
